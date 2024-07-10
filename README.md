@@ -10,6 +10,9 @@ allowing developers to write amxxpawn code in a more concise and flexible way.<b
 
 Thanks to [OKAPI module](https://github.com/Arkshine/Okapi/tree/master) authors, I referenced their code to implement to use variable arguments in MF_ExecuteForward() and MF_RegisterSpForward()
 
+## Important Note:
+**Don't use the Linux build, it crashs randomly, please wait for a fix.**
+
 ## Build
 To build this project, you need to install [ambuild](https://wiki.alliedmods.net/AMBuild)
 
