@@ -280,7 +280,8 @@ binary.compiler.cxxincludes += [
 
 binary.sources = [
   'public/sdk/amxxmodule.cpp',
-  'oo.cpp',
+  'oo_amxx.cpp',
+  'oo_manager.cpp',
 ]
 
 builder.Add(binary)
