@@ -1,0 +1,286 @@
+import os
+import subprocess
+import locale
+
+class AMXXConfig(object):
+  def __init__(self):
+    self.stdcxx_path = None
+
+  # Returns list of lines of output from the compiler
+  @staticmethod
+  def invokeCompiler(args):
+    if builder.compiler:
+      p = subprocess.Popen(builder.compiler.argv + args, stdout=subprocess.PIPE)
+      output = p.communicate()[0]
+      if hasattr(output,'encoding') and output.encoding is not None:
+          encoding = output.encoding
+      else:
+          encoding = locale.getpreferredencoding()
+      return output.decode(encoding, 'replace').split('\n')
+    return None
+
+  @property
+  def tag(self):
+    if builder.options.debug == '1':
+      return 'Debug'
+    return 'Release'
+  
+  def configure(self):
+    cxx = builder.DetectCompilers()
+
+    if cxx.like('gcc'):
+      self.configure_gcc(cxx)
+    elif cxx.like('msvc'):
+      self.configure_msvc(cxx)
+
+    # Optimization
+    if builder.options.opt == '1':
+      cxx.defines += ['NDEBUG']
+
+    # Debugging
+    if builder.options.debug == '1':
+      cxx.defines += ['DEBUG', '_DEBUG']
+
+    # Platform-specifics
+    if builder.target_platform == 'linux':
+      self.configure_linux(cxx)
+    elif builder.target_platform == 'mac':
+      self.configure_mac(cxx)
+    elif builder.target_platform == 'windows':
+      self.configure_windows(cxx)
+
+    # Finish up.
+    cxx.defines += [
+      'PAWN_CELL_SIZE=32',
+    ]
+
+    cxx.includes += [os.path.join(builder.sourcePath, 'public')]
+    cxx.includes += [os.path.join(builder.sourcePath, 'public', 'sdk')]
+    cxx.includes += [os.path.join(builder.sourcePath, 'public', 'amtl')]
+    cxx.includes += [os.path.join(builder.sourcePath, 'public', 'amtl', 'amtl')]
+    #cxx.includes += [os.path.join(builder.sourcePath, 'public', 'memtools')]
+    #cxx.includes += [os.path.join(builder.sourcePath, 'third_party')]
+    #cxx.includes += [os.path.join(builder.sourcePath, 'third_party', 'hashing')]
+    #cxx.includes += [os.path.join(builder.sourcePath, 'third_party', 'zlib')]
+    #cxx.includes += [os.path.join(builder.sourcePath, 'third_party', 'utf8rewind')]
+
+  def configure_gcc(self, cxx):
+    cxx.cflags += [
+      '-pipe',
+      '-fno-strict-aliasing',
+      '-Wall',
+      '-Werror',
+      '-Wno-uninitialized',
+      '-Wno-unused',
+      '-Wno-switch',
+      '-Wno-format',
+      '-Wno-format-security',
+      '-m32',
+    ]
+    cxx.cxxflags += [
+      '-Wno-invalid-offsetof',
+      '-std=c++11',
+    ]
+
+    cxx.linkflags += ['-m32']
+
+    have_gcc = cxx.vendor == 'gcc'
+    have_clang = cxx.vendor == 'clang'
+
+    if have_clang or (have_gcc and cxx.version >= '4'):
+      cxx.cflags += ['-fvisibility=hidden']
+      cxx.cxxflags += ['-fvisibility-inlines-hidden']
+      if have_clang or (have_gcc and cxx.version >= '4.6'):
+        cxx.cflags += ['-Wno-narrowing']
+      if (have_gcc and cxx.version >= '4.7') or (have_clang and cxx.version >= '3'):
+        cxx.cxxflags += ['-Wno-delete-non-virtual-dtor']
+      if have_gcc and cxx.version >= '4.8':
+        cxx.cflags += ['-Wno-unused-result', '-Wno-error=sign-compare']
+      if have_gcc and cxx.version >= '8.0':
+        cxx.cflags += ['-Wno-stringop-truncation']
+      if have_gcc and cxx.version >= '9.0':
+        cxx.cflags += ['-Wno-address-of-packed-member']		
+    if have_clang:
+      cxx.cxxflags += ['-Wno-implicit-exception-spec-mismatch']
+      if cxx.version >= '10.0':
+        cxx.cxxflags += ['-Wno-tautological-compare']
+      if cxx.version >= 'apple-clang-10.0':
+        cxx.cxxflags += [
+          '-Wno-inconsistent-missing-override',
+          '-Wno-varargs',
+        ]
+      if cxx.version >= 'apple-clang-5.1' or cxx.version >= 'clang-3.4':
+        cxx.cxxflags += ['-Wno-deprecated-register']
+      else:
+        cxx.cxxflags += ['-Wno-deprecated']
+      cxx.cflags += ['-Wno-sometimes-uninitialized']
+      if builder.target_platform == 'linux' and cxx.version >= '3.6':
+        cxx.cxxflags += ['-Wno-inconsistent-missing-override']
+      if builder.target_platform == 'linux' and cxx.version >= '3.9':
+        cxx.cxxflags += ['-Wno-varargs']
+      if builder.target_platform == 'linux' and cxx.version >= '4.0':
+        cxx.cxxflags += ['-Wno-address-of-packed-member']
+
+    if have_gcc:
+      cxx.cflags += ['-Wno-parentheses']
+      cxx.c_only_flags += ['-std=c99']
+    elif have_clang:
+      cxx.cflags += ['-Wno-logical-op-parentheses']
+
+    cxx.cxxflags += [
+      '-fno-exceptions',
+      '-fno-rtti',
+    ]
+
+    if builder.options.opt == '1':
+      cxx.cflags += ['-O2']
+
+  def configure_msvc(self, cxx):
+    if builder.options.debug == '1':
+      cxx.cflags += ['/MTd']
+      cxx.linkflags += ['/NODEFAULTLIB:libcmt']
+    else:
+      cxx.cflags += ['/MT']
+
+    cxx.defines += [
+      '_CRT_SECURE_NO_DEPRECATE',
+      '_CRT_SECURE_NO_WARNINGS',
+      '_CRT_NONSTDC_NO_DEPRECATE',
+      '_ITERATOR_DEBUG_LEVEL=0',
+    ]
+    cxx.cflags += [
+      '/W3',
+    ]
+    cxx.cxxflags += [
+      '/EHsc',
+      '/GR-',
+      '/TP',
+      '/std:c++11',
+    ]
+    cxx.linkflags += [
+      '/MACHINE:X86',
+      '/SUBSYSTEM:WINDOWS',
+      'kernel32.lib',
+      'user32.lib',
+      'gdi32.lib',
+      'winspool.lib',
+      'comdlg32.lib',
+      'advapi32.lib',
+      'shell32.lib',
+      'ole32.lib',
+      'oleaut32.lib',
+      'uuid.lib',
+      'odbc32.lib',
+      'odbccp32.lib',
+    ]
+
+    if cxx.version >= 1900:
+      cxx.linkflags += ['legacy_stdio_definitions.lib', 'legacy_stdio_wide_specifiers.lib']
+
+    if builder.options.opt == '1':
+      cxx.cflags += ['/Ox']
+      cxx.linkflags += ['/OPT:ICF', '/OPT:REF']
+
+    if builder.options.debug == '1':
+      cxx.cflags += ['/Od', '/RTC1']
+
+    # This needs to be after our optimization flags which could otherwise disable it.
+    # Don't omit the frame pointer.
+    cxx.cflags += ['/Oy-']
+
+  def configure_linux(self, cxx):
+    cxx.defines += ['_LINUX', 'POSIX', 'LINUX']
+    cxx.linkflags  += ['-ldl', '-lm']
+    if cxx.vendor == 'gcc':
+      cxx.linkflags  += ['-static-libgcc']
+    elif cxx.vendor == 'clang':
+      cxx.linkflags  += ['-lgcc_eh']
+    if cxx.like('gcc'):
+      self.stdcxx_path = self.invokeCompiler(['-m32', '-print-file-name=' + 'libstdc++.a'])[0]
+
+  def configure_mac(self, cxx):
+    cxx.defines += ['OSX', '_OSX', 'POSIX']
+    cxx.cflags += [
+      '-mmacosx-version-min=10.7',
+      '-Wno-address-of-packed-member',
+    ]
+    cxx.linkflags += [
+      '-mmacosx-version-min=10.7',
+      '-arch', 'i386',
+      '-lstdc++',
+      '-stdlib=libc++',
+      '-framework', 'CoreServices',
+    ]
+    cxx.cxxflags += ['-stdlib=libc++']
+
+  def configure_windows(self, cxx):
+    cxx.defines += ['WIN32', '_WINDOWS']
+
+  #
+  # Low-level compiler and binary construction.
+  #
+
+  def ConfigureForModule(self, context, compiler):
+    compiler.cxxincludes += [
+      os.path.join(context.currentSourcePath),
+    ]
+    return compiler
+
+  def Library(self, context, name):
+    binary = context.compiler.Library(name)
+    return binary
+  
+  def MetaModule(self, context, name):
+    if builder.target_platform == 'mac' or builder.target_platform == 'windows':
+      name = name + '_amxx'
+    elif builder.target_platform == 'linux':
+      name = name + '_amxx_i386'
+    binary = context.compiler.Library(name)
+    self.ConfigureForModule(context, binary.compiler)
+    return binary
+
+  def AddAssembly(self, context, binary, input_file, output_file, includes=[], extra_argv=[]):
+    if builder.target_platform == 'windows':
+      obj_type = 'win32'
+    elif builder.target_platform == 'linux':
+      obj_type = 'elf32'
+    elif builder.target_platform == 'mac':
+      obj_type = 'macho32'
+
+    input_path = os.path.join(context.currentSourcePath, input_file)
+    output_path = output_file
+
+    argv = [
+      '-I{0}{1}'.format(context.currentSourcePath, os.sep),
+      input_path,
+      '-f', obj_type,
+      '-o', output_path,
+    ] + extra_argv
+
+    extra_includes = []
+    for include_file in includes:
+      extra_includes.append(os.path.join(context.currentSourcePath, include_file))
+
+    cmd_node, output_nodes = context.AddCommand(
+      inputs = [input_path] + extra_includes,
+      argv = argv,
+      outputs = [output_path])
+
+    binary.compiler.linkflags += [output_nodes[0]]
+
+
+OO = AMXXConfig()
+OO.configure()
+
+binary = OO.MetaModule(builder, 'oo')
+
+binary.compiler.cxxincludes += [
+  os.path.join(builder.currentSourcePath, 'include'),
+]
+
+binary.sources = [
+  'public/sdk/amxxmodule.cpp',
+  'oo.cpp',
+]
+
+builder.Add(binary)
