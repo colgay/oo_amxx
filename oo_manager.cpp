@@ -101,39 +101,39 @@ namespace oo
 		return nullptr;
 	}
 
-    Variable* Manager::FindVariable(Object *obj, const char *name) const
-    {
-        if (strchr(name, '@') == NULL)
-        {
-            ke::AString _name;
-            for (auto current : obj->isa->mro)
-            {
-                _name.format("%s@%s", current->name.chars(), name);
+	Variable* Manager::FindVariable(Object *obj, const char *name) const
+	{
+		if (strchr(name, '@') == NULL)
+		{
+			ke::AString _name;
+			for (auto current : obj->isa->mro)
+			{
+				_name.format("%s@%s", current->name.chars(), name);
 
-                auto res = obj->vars.find(_name.chars());
-                if (res.found())
-                    return &res->value;
-            }
-        }
-        else
-        {
-            auto res = obj->vars.find(name);
-            if (res.found())
-                return &res->value;
-        }
+				auto res = obj->vars.find(_name.chars());
+				if (res.found())
+					return &res->value;
+			}
+		}
+		else
+		{
+			auto res = obj->vars.find(name);
+			if (res.found())
+				return &res->value;
+		}
 
-        return nullptr;
-    }
+		return nullptr;
+	}
 
-    void Manager::Clear()
-    {
-        m_classes.clear();
-        m_objects.clear();
-    }
+	void Manager::Clear()
+	{
+		m_classes.clear();
+		m_objects.clear();
+	}
 
-    Manager *Manager::Instance()
-    {
-        static Manager manager;
-        return &manager;
-    }
+	Manager *Manager::Instance()
+	{
+		static Manager manager;
+		return &manager;
+	}
 }

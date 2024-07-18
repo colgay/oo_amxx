@@ -8,15 +8,15 @@
 
 namespace oo
 {
-    using Variable = ke::Vector<int32_t>;
+	using Variable = ke::Vector<int32_t>;
 
-    struct Class;
+	struct Class;
 
-    struct Object
-    {
-        Class* isa;
-        ke::HashMap<ke::AString, Variable, HashStringPolicy> vars;
-    };
+	struct Object
+	{
+		Class* isa;
+		ke::HashMap<ke::AString, Variable, ke::HashStringPolicy> vars;
+	};
 }
 
 #endif // OO_OBJECT_H

@@ -30,12 +30,12 @@ namespace oo
 		const Method*      FindMethod(Class *cls, const char *name)    const;
 		Variable*          FindVariable(Object *obj, const char *name) const;
 
-		ke::HashMap<ke::AString, ke::AutoPtr<Class>, HashStringPolicy> &GetClasses() 
+		ke::HashMap<ke::AString, ke::AutoPtr<Class>, ke::HashStringPolicy> &GetClasses() 
 		{
 			return m_classes;
 		}
 
-		ke::HashMap<ObjectHash, ke::AutoPtr<Object>, HashIntegerPolicy> &GetObjects() 
+		ke::HashMap<ObjectHash, ke::AutoPtr<Object>, ke::HashIntegerPolicy> &GetObjects() 
 		{
 			return m_objects;
 		}
@@ -45,8 +45,8 @@ namespace oo
 		static Manager* Instance();
 
 	private:
-		ke::HashMap<ke::AString, ke::AutoPtr<Class>, HashStringPolicy>  m_classes;
-		ke::HashMap<ObjectHash, ke::AutoPtr<Object>, HashIntegerPolicy> m_objects;
+		ke::HashMap<ke::AString, ke::AutoPtr<Class>, ke::HashStringPolicy>  m_classes;
+		ke::HashMap<ObjectHash, ke::AutoPtr<Object>, ke::HashIntegerPolicy> m_objects;
 	};
 }
 

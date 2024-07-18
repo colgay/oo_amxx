@@ -14,11 +14,11 @@ namespace oo
 	using AmxxForward = int;
 	using ArgTypeList = ke::Vector<int>;
 	using HookList    = ke::Vector<AmxxForward>;
-	KE_CONSTEXPR AmxxForward NO_FORWARD = -1;
+	static const AmxxForward kNoForward = -1;
 
 	struct Constructor
 	{
-		AmxxForward forward = NO_FORWARD;
+		AmxxForward forward = kNoForward;
 		ArgTypeList args;
 		HookList    pre;
 		HookList    post;
@@ -26,14 +26,14 @@ namespace oo
 
 	struct Destructor
 	{
-		AmxxForward forward = NO_FORWARD;
+		AmxxForward forward = kNoForward;
 		HookList    pre;
 		HookList    post;
 	};
 
 	struct Method
 	{
-		AmxxForward forward   = NO_FORWARD;
+		AmxxForward forward   = kNoForward;
 		bool        is_static = false;
 		ArgTypeList args;
 		HookList    pre;
@@ -47,10 +47,10 @@ namespace oo
 		
 		ke::Vector<Class *> super_classes;
 		ke::Vector<Class *> mro;
-		ke::HashMap<ke::AString, int, HashStringPolicy>           vars;
-		ke::HashMap<int, Constructor, HashIntegerPolicy>          ctors;
-		ke::HashMap<ke::AString, Constructor *, HashStringPolicy> ctor_map;
-		ke::HashMap<ke::AString, Method, HashStringPolicy>        methods;
+		ke::HashMap<ke::AString, int, ke::HashStringPolicy>           vars;
+		ke::HashMap<int, Constructor, ke::HashIntegerPolicy>          ctors;
+		ke::HashMap<ke::AString, Constructor *, ke::HashStringPolicy> ctor_map;
+		ke::HashMap<ke::AString, Method, ke::HashStringPolicy>        methods;
 		Destructor dtor;
 
 		Class() : Class("", nullptr) {}
