@@ -1,24 +1,23 @@
 #ifndef OO_CLASS_H
 #define OO_CLASS_H
 
-#include <amtl/am-string.h>
-#include <amtl/am-vector.h>
-#include <amtl/am-hashmap.h>
-#include <amtl/am-hashset.h>
-#include <amtl/am-deque.h>
-
-#include "HashPolicy.h"
+#include <memory>
+#include <string>
+#include <vector>
+#include <queue>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace oo
 {
 	using AmxxForward = int;
-	using ArgTypeList = ke::Vector<int>;
-	using HookList    = ke::Vector<AmxxForward>;
-	static const AmxxForward kNoForward = -1;
+	using ArgTypeList = std::vector<int>;
+	using HookList    = std::vector<AmxxForward>;
+	const AmxxForward NO_FORWARD = -1;
 
 	struct Constructor
 	{
-		AmxxForward forward = kNoForward;
+		AmxxForward forward = NO_FORWARD;
 		ArgTypeList args;
 		HookList    pre;
 		HookList    post;
@@ -26,129 +25,106 @@ namespace oo
 
 	struct Destructor
 	{
-		AmxxForward forward = kNoForward;
+		AmxxForward forward = NO_FORWARD;
 		HookList    pre;
 		HookList    post;
 	};
 
 	struct Method
 	{
-		AmxxForward forward   = kNoForward;
+		AmxxForward forward   = NO_FORWARD;
 		bool        is_static = false;
 		ArgTypeList args;
 		HookList    pre;
 		HookList    post;
 	};
 
-	struct Class
+	struct Class : std::enable_shared_from_this<Class>
 	{
-		ke::AString name;
-		int instance_size;
+		std::string name;
+		std::size_t instance_size;
 		
-		ke::Vector<Class *> super_classes;
-		ke::Vector<Class *> mro;
-		ke::HashMap<ke::AString, int, ke::HashStringPolicy>           vars;
-		ke::HashMap<int, Constructor, ke::HashIntegerPolicy>          ctors;
-		ke::HashMap<ke::AString, Constructor *, ke::HashStringPolicy> ctor_map;
-		ke::HashMap<ke::AString, Method, ke::HashStringPolicy>        methods;
+		std::vector<std::weak_ptr<Class>> supers;
+		std::vector<std::weak_ptr<Class>> mro;
+
+		std::unordered_map<std::string, int> 			vars;
+		std::unordered_map<int, Constructor> 			ctors;
+		std::unordered_map<std::string, Constructor *> 	ctors_map;
+		std::unordered_map<std::string, Method> 		mthds;
 		Destructor dtor;
 
-		Class() : Class("", nullptr) {}
+		Class(const std::string &name) : name(name), instance_size(0) {}
 
-		Class(const char *name, ke::Vector<Class *> *supers=nullptr)
+		Class(const std::string &name, std::vector<std::weak_ptr<Class>> &&supers)
+			: name(name), instance_size(0)
 		{
-			this->instance_size = 0;
+			this->supers = std::move(supers);
 
-			if (supers != nullptr)
+			for (auto super : this->supers)
 			{
-				for (auto super : *supers)
-				{
-					this->super_classes.append(super);
-					this->instance_size += super->instance_size;
-				}
+				this->instance_size += super.lock()->instance_size;
 			}
-
-			InitHashMap();
 		}
 
-		void InitHashMap()
+		void InitMRO()
 		{
-			this->ctors.init();
-			this->vars.init();
-			this->methods.init();
-			this->ctor_map.init();
-		}
-
-		void InitMro()
-		{
-			ke::Deque<Class *> to_visit;
-			ke::HashSet<Class *, ke::PointerPolicy<Class>> visited;
-			visited.init();
-			to_visit.append(this);
+			std::queue<std::weak_ptr<Class>> to_visit;
+			std::unordered_set<std::weak_ptr<Class>> visited;
+			to_visit.push(shared_from_this());
 
 			while (!to_visit.empty())
 			{
 				auto current = to_visit.front();
-				to_visit.popFront();
+				to_visit.pop();
 
-				auto r = visited.find(current);
-				if (!r.found())
+				if (visited.find(current) == visited.end())
 				{
-					visited.add(current);
+					visited.emplace(current);
 
-					for (auto super : current->super_classes)
+					for (auto super : current.lock()->supers)
 					{
-						to_visit.append(super);
+						to_visit.emplace(super);
 					}
 
-					this->mro.append(current);
+					this->mro.emplace_back(current);
 				}
 			}
 		}
 
-		void AddVariable(const char *name, int size)
+		void AddVariable(const std::string &name, int size)
 		{
 			this->instance_size += size;
-			auto in = this->vars.findForAdd(name);
-			if (!in.found())
-				this->vars.add(in, ke::AString(name), size);
+			this->vars.emplace(name, size);
 		}
 
-		void AddConstructor(Constructor ctor, const char *name)
+		void AddConstructor(Constructor &&ctor, const std::string &name)
 		{
-			int arg_size = ctor.args.length();
-
-			auto in = this->ctors.findForAdd(arg_size);
-			if (!in.found())
-				this->ctors.add(in, arg_size, ke::Move(ctor));
-
-			auto in2 = this->ctor_map.findForAdd(name);
-			if (!in2.found())
-				this->ctor_map.add(in2, ke::AString(name), &in->value);
+			int arg_size = ctor.args.size();
+			auto pair = this->ctors.emplace(arg_size, std::move(ctor));
+			if (pair.second)
+				this->ctors_map.emplace(name, &pair.first->second);
 		}
 
-		void AddMethod(const char *name, Method mthd)
+		void AddMethod(const std::string &name, Method &&mthd)
 		{
-			auto in = this->methods.findForAdd(name);
-			if (!in.found())
-				this->methods.add(in, ke::AString(name), ke::Move(mthd));
+			this->mthds.emplace(name, std::move(mthd));
 		}
 
-		void SetDestructor(Destructor dtor)
+		void SetDestructor(Destructor &&dtor)
 		{
-			this->dtor = ke::Move(dtor);
+			this->dtor = std::move(dtor);
 		}
 
-		bool IsClass(Class *cls)
+		bool IsClass(std::weak_ptr<Class> cls)
 		{
-			return this == cls;
+			return shared_from_this() == cls.lock();
 		}
 
-		bool IsSubclassOf(Class *super)
+		bool IsSubclassOf(std::weak_ptr<Class> cls)
 		{
-			for (auto cls : this->mro)
+			for (auto current : this->mro)
 			{
-				if (cls == super)
+				if (current.lock() == cls.lock())
 					return true;
 			}
 

@@ -4,8 +4,6 @@ namespace oo
 {
 	Manager::Manager()
 	{
-		m_classes.init();
-		m_objects.init();
 	}
 
 	Manager::~Manager()
@@ -13,113 +11,105 @@ namespace oo
 		Clear();
 	}
 
-	Class* Manager::NewClass(const char *name, ke::Vector<Class *> *supers)
+	std::weak_ptr<Class> Manager::NewClass(const std::string &name)
 	{
-		auto in = m_classes.findForAdd(name);
-		m_classes.add(in, ke::AString(name), new Class(name, supers));
-
-		return in->value;
+		auto pairs = m_classes.emplace(name, std::make_shared<Class>(name));
+		return pairs.first->second;
 	}
 
-	ObjectHash Manager::NewObject(Class *isa)
+	std::weak_ptr<Class> Manager::NewClass(const std::string &name, std::vector<std::weak_ptr<Class>> &&supers)
 	{
-		Object *obj = new Object();
-		obj->isa = isa;
-		obj->vars.init();
+		auto pairs = m_classes.emplace(name, std::make_shared<Class>(name));
+		return pairs.first->second;
+	}
 
-		for (auto cls : isa->mro)
+	ObjectHash Manager::NewObject(std::weak_ptr<Class> isa)
+	{
+		std::shared_ptr<Object> obj = std::make_shared<Object>(isa);
+
+		for (auto cls : isa.lock()->mro)
 		{
-			for (auto iter = cls->vars.iter(); !iter.empty(); iter.next())
+			for (auto pairs : cls.lock()->vars)
 			{
-				int var_size = iter->value;
-
-				ke::AString var_name;
-				var_name.format("%s@%s", cls->name.chars(), iter->key.chars());
-
-				auto in = obj->vars.findForAdd(var_name.chars());
-				if (!in.found())
-				{
-					Variable var;
-					var.resize(var_size);
-					obj->vars.add(in, var_name, ke::Move(var));
-				}
+				auto name = cls.lock()->name + "@" + pairs.first;
+				auto size = pairs.second;
+				obj->vars.try_emplace(name, size);
 			}
 		}
 
-		auto obj_hash = ke::HashPointer(obj);
-		auto in = m_objects.findForAdd(obj_hash);
-		m_objects.add(in, obj_hash, ke::Move(obj));
-
-		return obj_hash;
+		auto hash = std::hash<std::shared_ptr<Object>>{}(obj);
+		m_objects.emplace(hash, std::move(obj));
+		return hash;
 	}
 
 	void Manager::DeleteObject(ObjectHash obj_hash)
 	{
-		auto res = m_objects.find(obj_hash);
-		m_objects.remove(res);
+		m_objects.erase(obj_hash);
 	}
 
-	Class* Manager::ToClass(const char *name) const
+	std::weak_ptr<Class> Manager::ToClass(const std::string &name) const
 	{
-		auto res = m_classes.find(name);
-		if(!res.found())
-			return nullptr;
+		auto iter = m_classes.find(name);
+		if (iter == m_classes.end())
+			return std::weak_ptr<Class>();
 
-		return res->value.get();
+		return iter->second;
 	}
 
-	Object* Manager::ToObject(ObjectHash obj_hash) const
+	std::weak_ptr<Object> Manager::ToObject(ObjectHash obj_hash) const
 	{
-		auto res = m_objects.find(obj_hash);
-		if(!res.found())
-			return nullptr;
+		auto iter = m_objects.find(obj_hash);
+		if (iter == m_objects.end())
+			return std::weak_ptr<Object>();
 
-		return res->value.get();
+		return iter->second;
 	}
 
-	const Constructor* Manager::FindConstructor(Class *cls, int arg_size) const
+	const Constructor* Manager::FindConstructor(std::weak_ptr<Class> cls, int arg_size) const
 	{
-		for (auto current : cls->mro)
+		for (auto current : cls.lock()->mro)
 		{
-			auto res = current->ctors.find(arg_size);
-			if (res.found())
-				return &res->value;
+			auto ctors = current.lock()->ctors;
+			auto iter = ctors.find(arg_size);
+			if (iter != ctors.end())
+				return &iter->second;
 		}
 
 		return nullptr;
 	}
 
-	const Method* Manager::FindMethod(Class *cls, const char *name) const
+	const Method* Manager::FindMethod(std::weak_ptr<Class> cls, const std::string &name) const
 	{
-		for (auto current : cls->mro)
+		for (auto current : cls.lock()->mro)
 		{
-			auto res = current->methods.find(name);
-			if (res.found())
-				return &res->value;
+			auto mthds = current.lock()->mthds;
+			auto iter = mthds.find(name);
+			if (iter != mthds.end())
+				return &iter->second;
 		}
 
 		return nullptr;
 	}
 
-	Variable* Manager::FindVariable(Object *obj, const char *name) const
+	const Variable* Manager::FindVariable(std::weak_ptr<Object> obj, const std::string &name) const
 	{
-		if (strchr(name, '@') == NULL)
+		auto vars = obj.lock()->vars;
+		std::size_t pos = name.find("@");
+
+		if (pos != std::string::npos)
 		{
-			ke::AString _name;
-			for (auto current : obj->isa->mro)
+			for (auto current : obj.lock()->isa.lock()->mro)
 			{
-				_name.format("%s@%s", current->name.chars(), name);
-
-				auto res = obj->vars.find(_name.chars());
-				if (res.found())
-					return &res->value;
+				auto iter = vars.find(current.lock()->name + "@" + name);
+				if (iter != vars.end())
+					return &iter->second;
 			}
 		}
 		else
 		{
-			auto res = obj->vars.find(name);
-			if (res.found())
-				return &res->value;
+			auto iter = vars.find(name);
+			if (iter != vars.end())
+				return &iter->second;
 		}
 
 		return nullptr;

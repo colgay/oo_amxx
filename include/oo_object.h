@@ -1,21 +1,20 @@
 #ifndef OO_OBJECT_H
 #define OO_OBJECT_H
 
-#include <amtl/am-vector.h>
-#include <amtl/am-hashmap.h>
-
-#include "HashPolicy.h"
+#include <memory>
+#include <vector>
+#include <unordered_map>
 
 namespace oo
 {
-	using Variable = ke::Vector<int32_t>;
+	using Variable = std::vector<int>;
 
 	struct Class;
 
 	struct Object
 	{
-		Class* isa;
-		ke::HashMap<ke::AString, Variable, ke::HashStringPolicy> vars;
+		std::weak_ptr<Class> isa;
+		std::unordered_map<std::string, Variable> vars;
 	};
 }
 

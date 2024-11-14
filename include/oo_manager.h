@@ -1,9 +1,8 @@
 #ifndef OO_MANAGER_H
 #define OO_MANAGER_H
 
-#include <amtl/am-autoptr.h>
-#include <amtl/am-vector.h>
-#include <amtl/am-hashmap.h>
+#include <memory>
+#include <vector>
 
 #include "oo_class.h"
 #include "oo_object.h"
@@ -11,7 +10,7 @@
 namespace oo
 {
 	using ObjectHash = uint32_t;
-	KE_CONSTEXPR ObjectHash OBJ_NULL = 0u;
+	const ObjectHash OBJ_NULL = 0u;
 
 	class Manager
 	{
@@ -19,23 +18,24 @@ namespace oo
 		Manager();
 		~Manager();
 
-		Class*     NewClass(const char *name, ke::Vector<Class *> *supers=nullptr);
-		ObjectHash NewObject(Class *isa);
+		std::weak_ptr<Class> NewClass(const std::string &name);
+		std::weak_ptr<Class> NewClass(const std::string &name, std::vector<std::weak_ptr<Class>> &&supers);
+		ObjectHash NewObject(std::weak_ptr<Class> isa);
 		void       DeleteObject(ObjectHash obj_hash);
 
-		Class*     ToClass(const char *name)      const;
-		Object*    ToObject(ObjectHash obj_hash)  const;
+		std::weak_ptr<Class> 	ToClass(const std::string &name) const;
+		std::weak_ptr<Object> 	ToObject(ObjectHash obj_hash) 	 const;
 
-		const Constructor* FindConstructor(Class *cls, int arg_size)   const;
-		const Method*      FindMethod(Class *cls, const char *name)    const;
-		Variable*          FindVariable(Object *obj, const char *name) const;
+		const Constructor* FindConstructor(std::weak_ptr<Class> cls, int arg_size) 		 	const;
+		const Method* 	   FindMethod(std::weak_ptr<Class> cls, const std::string &name) 	const;
+		const Variable*    FindVariable(std::weak_ptr<Object> obj, const std::string &name) const;
 
-		ke::HashMap<ke::AString, ke::AutoPtr<Class>, ke::HashStringPolicy> &GetClasses() 
+		const std::unordered_map<std::string, std::shared_ptr<Class>> &GetClasses() const
 		{
 			return m_classes;
 		}
 
-		ke::HashMap<ObjectHash, ke::AutoPtr<Object>, ke::HashIntegerPolicy> &GetObjects() 
+		const std::unordered_map<ObjectHash, std::shared_ptr<Object>> &GetObjects() const
 		{
 			return m_objects;
 		}
@@ -45,8 +45,8 @@ namespace oo
 		static Manager* Instance();
 
 	private:
-		ke::HashMap<ke::AString, ke::AutoPtr<Class>, ke::HashStringPolicy>  m_classes;
-		ke::HashMap<ObjectHash, ke::AutoPtr<Object>, ke::HashIntegerPolicy> m_objects;
+		std::unordered_map<std::string, std::shared_ptr<Class>> m_classes;
+		std::unordered_map<ObjectHash, std::shared_ptr<Object>> m_objects;
 	};
 }
 
