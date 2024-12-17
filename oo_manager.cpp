@@ -2,10 +2,6 @@
 
 namespace oo
 {
-	Manager::Manager()
-	{
-	}
-
 	Manager::~Manager()
 	{
 		Clear();
@@ -19,21 +15,22 @@ namespace oo
 
 	std::weak_ptr<Class> Manager::NewClass(const std::string &name, std::vector<std::weak_ptr<Class>> &&supers)
 	{
-		auto pairs = m_classes.emplace(name, std::make_shared<Class>(name));
+		auto pairs = m_classes.emplace(name, std::make_shared<Class>(name, std::move(supers)));
 		return pairs.first->second;
 	}
 
 	ObjectHash Manager::NewObject(std::weak_ptr<Class> isa)
 	{
-		std::shared_ptr<Object> obj = std::make_shared<Object>(isa);
+		std::shared_ptr<Object> obj = std::make_shared<Object>();
+		obj->isa = isa;
 
 		for (auto cls : isa.lock()->mro)
 		{
-			for (auto pairs : cls.lock()->vars)
+			for (const auto &pairs : cls.lock()->vars)
 			{
-				auto name = cls.lock()->name + "@" + pairs.first;
-				auto size = pairs.second;
-				obj->vars.try_emplace(name, size);
+				std::string name = cls.lock()->name + "@" + pairs.first;
+				int size = pairs.second;
+				obj->vars.try_emplace(name, Variable(size));
 			}
 		}
 
@@ -69,10 +66,12 @@ namespace oo
 	{
 		for (auto current : cls.lock()->mro)
 		{
-			auto ctors = current.lock()->ctors;
-			auto iter = ctors.find(arg_size);
-			if (iter != ctors.end())
-				return &iter->second;
+			const auto &ctors = current.lock()->ctors;
+			auto it = ctors.find(arg_size);
+			if (it != ctors.end())
+			{
+				return &(it->second);
+			}
 		}
 
 		return nullptr;
@@ -82,34 +81,38 @@ namespace oo
 	{
 		for (auto current : cls.lock()->mro)
 		{
-			auto mthds = current.lock()->mthds;
+			const auto &mthds = current.lock()->mthds;
 			auto iter = mthds.find(name);
 			if (iter != mthds.end())
-				return &iter->second;
+			{
+				return &(iter->second);
+			}
 		}
 
 		return nullptr;
 	}
 
-	const Variable* Manager::FindVariable(std::weak_ptr<Object> obj, const std::string &name) const
+	Variable* Manager::FindVariable(std::weak_ptr<Object> obj, const std::string &name)
 	{
-		auto vars = obj.lock()->vars;
-		std::size_t pos = name.find("@");
-
-		if (pos != std::string::npos)
+		auto &vars = obj.lock()->vars;
+		if (name.find("@") == std::string::npos)
 		{
 			for (auto current : obj.lock()->isa.lock()->mro)
 			{
 				auto iter = vars.find(current.lock()->name + "@" + name);
 				if (iter != vars.end())
-					return &iter->second;
+				{
+					return &(iter->second);
+				}
 			}
 		}
 		else
 		{
 			auto iter = vars.find(name);
 			if (iter != vars.end())
-				return &iter->second;
+			{
+				return &(iter->second);
+			}
 		}
 
 		return nullptr;
@@ -123,7 +126,7 @@ namespace oo
 
 	Manager *Manager::Instance()
 	{
-		static Manager manager;
-		return &manager;
+		static Manager mgr;
+		return &mgr;
 	}
 }
