@@ -5,9 +5,11 @@
 #include <vector>
 #include <unordered_map>
 
+#include "amxxmodule.h"
+
 namespace oo
 {
-	using Variable = std::vector<int>;
+	using Variable = std::vector<cell>;
 
 	struct Class;
 

@@ -12,12 +12,11 @@ namespace oo
 {
 	using AmxxForward = int;
 	using ArgTypeList = std::vector<int>;
-	using HookList    = std::vector<AmxxForward>;
-	const AmxxForward NO_FORWARD = -1;
+	using HookList    = std::vector<int>;
 
 	struct Constructor
 	{
-		AmxxForward forward = NO_FORWARD;
+		AmxxForward forward;
 		ArgTypeList args;
 		HookList    pre;
 		HookList    post;
@@ -25,15 +24,15 @@ namespace oo
 
 	struct Destructor
 	{
-		AmxxForward forward = NO_FORWARD;
+		AmxxForward forward;
 		HookList    pre;
 		HookList    post;
 	};
 
 	struct Method
 	{
-		AmxxForward forward   = NO_FORWARD;
-		bool        is_static = false;
+		AmxxForward forward;
+		bool        is_static;
 		ArgTypeList args;
 		HookList    pre;
 		HookList    post;
@@ -53,13 +52,11 @@ namespace oo
 		std::unordered_map<std::string, Method> 		mthds;
 		Destructor dtor;
 
-		Class(const std::string &name) : name(name), instance_size(0) {}
+		Class(const std::string &name) : name(name), instance_size(0), dtor({-1}) {}
 
 		Class(const std::string &name, std::vector<std::weak_ptr<Class>> &&supers)
-			: name(name), instance_size(0)
+			: name(name), instance_size(0), supers(std::move(supers)), dtor({-1})
 		{
-			this->supers = std::move(supers);
-
 			for (auto super : this->supers)
 			{
 				this->instance_size += super.lock()->instance_size;
@@ -69,7 +66,7 @@ namespace oo
 		void InitMRO()
 		{
 			std::queue<std::weak_ptr<Class>> to_visit;
-			std::unordered_set<std::weak_ptr<Class>> visited;
+			std::unordered_set<std::shared_ptr<Class>> visited;
 			to_visit.push(shared_from_this());
 
 			while (!to_visit.empty())
@@ -77,7 +74,7 @@ namespace oo
 				auto current = to_visit.front();
 				to_visit.pop();
 
-				if (visited.find(current) == visited.end())
+				if (visited.find(current.lock()) == visited.end())
 				{
 					visited.emplace(current);
 

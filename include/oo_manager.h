@@ -3,19 +3,18 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_map>
 
 #include "oo_class.h"
 #include "oo_object.h"
 
 namespace oo
 {
-	using ObjectHash = uint32_t;
-	const ObjectHash OBJ_NULL = 0u;
+	using ObjectHash = size_t;
 
 	class Manager
 	{
 	public:
-		Manager();
 		~Manager();
 
 		std::weak_ptr<Class> NewClass(const std::string &name);
@@ -26,9 +25,9 @@ namespace oo
 		std::weak_ptr<Class> 	ToClass(const std::string &name) const;
 		std::weak_ptr<Object> 	ToObject(ObjectHash obj_hash) 	 const;
 
-		const Constructor* FindConstructor(std::weak_ptr<Class> cls, int arg_size) 		 	const;
-		const Method* 	   FindMethod(std::weak_ptr<Class> cls, const std::string &name) 	const;
-		const Variable*    FindVariable(std::weak_ptr<Object> obj, const std::string &name) const;
+		const Constructor* 	FindConstructor(std::weak_ptr<Class> cls, int arg_size) 		 const;
+		const Method* 		FindMethod(std::weak_ptr<Class> cls, const std::string &name) 	 const;
+		Variable* 			FindVariable(std::weak_ptr<Object> obj, const std::string &name);
 
 		const std::unordered_map<std::string, std::shared_ptr<Class>> &GetClasses() const
 		{
@@ -44,7 +43,9 @@ namespace oo
 
 		static Manager* Instance();
 
+		Manager() {}
 	private:
+
 		std::unordered_map<std::string, std::shared_ptr<Class>> m_classes;
 		std::unordered_map<ObjectHash, std::shared_ptr<Object>> m_objects;
 	};
