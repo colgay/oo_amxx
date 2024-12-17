@@ -79,7 +79,7 @@ class AMXXConfig(object):
     ]
     cxx.cxxflags += [
       '-Wno-invalid-offsetof',
-      '-std=c++11',
+      '-std=c++17',
     ]
 
     cxx.linkflags += ['-m32']
@@ -147,6 +147,7 @@ class AMXXConfig(object):
       '_CRT_SECURE_NO_WARNINGS',
       '_CRT_NONSTDC_NO_DEPRECATE',
       '_ITERATOR_DEBUG_LEVEL=0',
+      'HAVE_STDINT_H',
     ]
     cxx.cflags += [
       '/W3',
@@ -155,7 +156,7 @@ class AMXXConfig(object):
       '/EHsc',
       '/GR-',
       '/TP',
-      '/std:c++11',
+      '/std:c++17',
     ]
     cxx.linkflags += [
       '/MACHINE:X86',
@@ -274,6 +275,11 @@ OO.configure()
 
 binary = OO.MetaModule(builder, 'oo')
 
+if builder.target_platform == 'linux':
+  binary.compiler.postlink += [
+    binary.Dep(OO.stdcxx_path),
+  ]
+
 binary.compiler.cxxincludes += [
   os.path.join(builder.currentSourcePath, 'include'),
 ]
@@ -282,6 +288,17 @@ binary.sources = [
   'public/sdk/amxxmodule.cpp',
   'oo_amxx.cpp',
   'oo_manager.cpp',
+  'oo_forward.cpp',
+  'oo_call.cpp',
+  'oo_native.cpp',
+  'oo_asm.cpp'
 ]
 
 builder.Add(binary)
+
+builder.RunBuildScripts(
+  [
+    'plugins/AMBuilder',
+  ],
+  { 'OO': OO }
+)

@@ -1,0 +1,45 @@
+import os
+
+files = [
+  'oo_animal.sma',
+  'oo_hook.sma',
+  'oo_multiple_inheritance.sma',
+]
+
+amxxpc_argv = [
+  os.path.join(builder.options.amxxpc_path, 'amxxpc'),
+  '-i' + os.path.join(builder.options.amxxpc_path, 'includes'),
+  '-i' + os.path.join(builder.sourcePath, 'plugins', 'includes'),
+  '-h',
+  '-E',
+]
+
+def build_plugin(script_path, amxx_file, extra_argv = []):
+  script_folder = os.path.dirname(amxx_file)
+  if len(script_folder):
+    builder.AddFolder(script_folder)
+
+  inputs = [
+    script_path
+  ]
+  outputs = [
+    amxx_file
+  ]
+
+  argv = amxxpc_argv + extra_argv + [
+    script_path,
+    '-o' + amxx_file,
+  ]
+
+  builder.AddCommand(
+    inputs = inputs,
+    argv = argv,
+    outputs = outputs,
+    dep_type = 'msvc',
+  )
+
+for script_file in files:
+  script_path = os.path.join(builder.currentSourcePath, script_file)
+  amxx_file = os.path.splitext(script_file)[0] + '.amxx'
+
+  build_plugin(script_path, amxx_file)
