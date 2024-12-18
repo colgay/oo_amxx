@@ -296,9 +296,9 @@ binary.sources = [
 
 builder.Add(binary)
 
-builder.RunBuildScripts(
-  [
-    'plugins/AMBuilder',
-  ],
-  { 'OO': OO }
-)
+#builder.RunBuildScripts(
+#  [
+#    'plugins/AMBuilder',
+#  ],
+#  { 'OO': OO }
+#)
