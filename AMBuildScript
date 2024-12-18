@@ -67,6 +67,7 @@ class AMXXConfig(object):
   def configure_gcc(self, cxx):
     cxx.cflags += [
       '-pipe',
+      '-fPIC',
       '-fno-strict-aliasing',
       '-Wall',
       '-Werror',
