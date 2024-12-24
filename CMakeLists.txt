@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(oo VERSION 1.3.0 LANGUAGES C CXX)
+project(oo VERSION 1.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -25,7 +25,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_definitions(oo PRIVATE NDEBUG)
 endif ()
 
-if (MSVC)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_definitions(oo PRIVATE
         _CRT_SECURE_NO_DEPRECATE
         _CRT_SECURE_NO_WARNINGS
@@ -68,7 +68,9 @@ if (MSVC)
         target_link_libraries(oo PRIVATE legacy_stdio_definitions.lib legacy_stdio_wide_specifiers.lib)
     endif()
 
-elseif (GCC)
+    set_target_properties(oo PROPERTIES OUTPUT_NAME oo_amxx)
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_definitions(oo PRIVATE _LINUX POSIX LINUX)
 
     target_compile_options(oo PRIVATE
@@ -123,10 +125,10 @@ elseif (GCC)
     
     target_link_libraries(my_executable PRIVATE ${STDCXX_PATH})
     message(STATUS "Added libstdc++.a dependency for Linux")
+
+    set_target_properties(oo PROPERTIES OUTPUT_NAME oo_amxx_i386)
 else()
     message(FATAL_ERROR "Unsupported compiler")
 endif()
 
 target_compile_definitions(oo PRIVATE PAWN_CELL_SIZE=32)
-
-set_target_properties(oo PROPERTIES OUTPUT_NAME oo_amxx)
