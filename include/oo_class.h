@@ -52,10 +52,10 @@ namespace oo
 		std::unordered_map<std::string, Method> 		mthds;
 		Destructor dtor;
 
-		Class(const std::string &name) : name(name), instance_size(0), dtor({-1}) {}
+		Class(const std::string &name) : name(name), instance_size(0), dtor(Destructor{-1}) {}
 
 		Class(const std::string &name, std::vector<std::weak_ptr<Class>> &&supers)
-			: name(name), instance_size(0), supers(std::move(supers)), dtor({-1})
+			: name(name), instance_size(0), supers(std::move(supers)), dtor(Destructor{-1})
 		{
 			for (auto super : this->supers)
 			{
