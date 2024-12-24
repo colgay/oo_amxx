@@ -12,10 +12,7 @@
 #define OO_VERSION_NUM	120
 stock const OO_VERSION_STR[] = "1.2.0";
 
-#define @null 					any:0 		// null object
-#define @this 					oo_this() 	// this object
-#define @incre(%0[%1])			oo_set(%0, oo_get(%0, #%1) + 1) // increment
-#define @decre(%0[%1])			oo_set(%0, oo_get(%0, #%1) - 1) // decrement
+#define @null 			any:0 	// null object
 
 // OO Arg Types (Full name)
 #define OO_CELL			(1)		// cell
@@ -24,8 +21,8 @@ stock const OO_VERSION_STR[] = "1.2.0";
 #define OO_BYREF		(0) 	// cell or float by reference
 #define OO_STRING		(-1) 	// const string[]
 #define OO_STRING_REF 	(-2) 	// string[]
-#define OO_VEC2			(2)		// 2d vector (not necessary)
-#define OO_VEC3			(3)		// 3d vector (not necessary)
+#define OO_VECTOR2		(2)		// 2d vector (not necessary)
+#define OO_VECTOR3		(3)		// 3d vector (not necessary)
 #define OO_ARRAY[%0]	(%0)	// array[size]
 #define OO_STATIC		(0)		// for static method
 
@@ -39,28 +36,28 @@ stock const OO_VERSION_STR[] = "1.2.0";
 #define @vec(%0[%1])	OO_ARRAY[%1]
 #define @arr(%0[%1])	OO_ARRAY[%1]
 #define @obj(%0)		OO_OBJECT
-#define @static 		OO_STATIC
 
 /**
  * Get the value of the array-type variable from an object.
  * oo_get_arr(any:this, const name[], output_arr[])
  * Example:
- *   new array[3] = {3, 6, 9};
- *   oo_set(this, "items", array);
+ *   new array[32];  
+ *   oo_set_arr(this, "items", array);
+ */
 #define oo_get_arr(%0,%1,%2)		oo_get(%0, %1, 0, 0, %2, 0, 0)
 
 /*
  * Set the value of the array-type variable to an object.
  * oo_set_arr(any:this, const name[], const array[])
  * Example:
- *   new array[32];  
- *   oo_set(this, "items", array);
+ *   new array[3] = {3, 6, 9};
+ *   oo_get_arr(this, "items", array);
  */
 #define oo_set_arr(%0,%1,%2)		oo_set(%0, %1, 0, 0, %2, 0, 0)
 
 // New macro
 #define @range(%0..%1,%2[%3..%4]) 	%0, %1, %2, %3, %4
-#define @array(%0,%1)				0, 0, %0, 0, %1
+#define @array(%0,%1)				0, %1, %0, 0, %1
 // new item[3];
 // oo_set(this, "items", @range(0..3, items[0..3]))
 // oo_set(this, "items", @array(items, 3))
@@ -80,6 +77,10 @@ enum
  * @noreturn
  */
 forward oo_init();
+
+forward oo_object_created(const class[], num_args, any:this);
+
+forward oo_object_deleted(const class[], any:this);
 
 /**
  * Declare a class.
@@ -373,10 +374,10 @@ native oo_set(any:this, const name[], any: ...);
  * @note Examples:
  *			// General
  *			new string[32];
- * 			oo_get(this, "name", string, charsmax(string));
+ * 			oo_get_str(this, "name", string, charsmax(string));
  *
- *			// If the "desc" is "This apple is red." and I only want the "red"
- * 			oo_get(this, "desc", "This apple is red.", 3, 14);
+ *			// If the "desc" is "This apple is red." and only extract the "red"
+ * 			oo_get_str(this, "desc", "This apple is red.", 3, 14);
  *
  *
  * @param this   		Object hash
@@ -394,15 +395,15 @@ native oo_get_str(any:this, const name[], string[], length, start=0);
  *
  * @note Examples:
  *			// General
- * 			oo_set(this, "name", "Macy");
+ * 			oo_set_str(this, "name", "Macy");
  *
  * 			// Append the string
  *			new len = 0;
- * 			len += oo_set(this, "buffer", "first line\n");
- * 			len += oo_set(this, "buffer", "second line\n", len);
+ * 			len += oo_set_str(this, "buffer", "first line\n");
+ * 			len += oo_set_str(this, "buffer", "second line\n", len);
  *
  *			// Only "apple" is set to the variable
- * 			len += oo_set(this, "buffer", "This apple is red.", 6, 5);
+ * 			len += oo_set_str(this, "buffer", "This apple is red.", 6, 5);
  *
  * @param this   		Object hash
  * @param name   		Variable name (You can specify the class name like "Animal@var")
@@ -484,7 +485,7 @@ native oo_hook_set_return(any:value);
 /**
  * Get the return result for current method. (Work only in post hook)
  *
- * @note You can only use this inside an OO callback.
+ * @note You can only use this inside an OO Hook callback.
  *
  * @return value		The result
  */
@@ -506,7 +507,7 @@ native any:oo_hook_get_return();
  *				oo_hook_set_param(2, OO_STRING, "I'm not an animal actually.");
  *			}
  *
- * @note You can only use this inside an OO callback.
+ * @note You can only use this inside an OO Hook callback.
  *
  * @noreturn;
  */
@@ -539,10 +540,17 @@ native oo_get_str_len(any:this, const name[]);
  */
 native oo_get_plugin();
 
-/**
- * Append the string
- */
 stock oo_add_str(any:this, const name[], const string[], pos=-1)
 {
 	return oo_set_str(this, name, string, (pos == -1) ? oo_get_str_len(this, name) : pos);
+}
+
+stock oo_add(any:this, const name[], any:value)
+{
+	oo_set(this, name, oo_get(this, name) + value);
+}
+
+stock oo_sub(any:this, const name[], any:value)
+{
+	oo_set(this, name, oo_get(this, name) - value);
 }
