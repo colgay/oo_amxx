@@ -7,6 +7,9 @@
 
 #include <string>
 
+extern int g_ObjectCreated;
+extern int g_ObjectDeleted;
+
 namespace oo {
 namespace native
 {
@@ -94,7 +97,7 @@ namespace native
 
 			ctor.forward = Forward::Create(amx, public_name.c_str(), &ctor.args);
 
-			if (ctor.forward <= NO_FORWARD)
+			if (ctor.forward == NO_FORWARD)
 			{
 				MF_LogError(amx, AMX_ERR_NATIVE, "%s(...): Public not found", public_name.c_str());
 				return 0;
@@ -123,7 +126,7 @@ namespace native
 		{
 			dtor.forward = Forward::Create(amx, public_name.c_str(), nullptr);
 
-			if (dtor.forward <= NO_FORWARD)
+			if (dtor.forward == NO_FORWARD)
 			{
 				MF_LogError(amx, AMX_ERR_NATIVE, "%s(...): Public not found", public_name.c_str());
 				return 0;
@@ -163,7 +166,7 @@ namespace native
 			mthd.forward = Forward::Create(amx, public_name.c_str(), &mthd.args);
 			mthd.is_static = false;
 
-			if (mthd.forward <= NO_FORWARD)
+			if (mthd.forward == NO_FORWARD)
 			{
 				MF_LogError(amx, AMX_ERR_NATIVE, "%s(...): Public not found", public_name.c_str());
 				return 0;
@@ -203,7 +206,7 @@ namespace native
 			mthd.forward = Forward::Create(amx, public_name.c_str(), &mthd.args);
 			mthd.is_static = true;
 
-			if (mthd.forward <= NO_FORWARD)
+			if (mthd.forward == NO_FORWARD)
 			{
 				MF_LogError(amx, AMX_ERR_NATIVE, "%s(...): Public not found", public_name.c_str());
 				return 0;
@@ -255,7 +258,7 @@ namespace native
 		}
 		else
 		{
-			if (var_size == 1)
+			if (var_size == 1 && num_args == 3)
 			{
 				MF_CopyAmxMemory(MF_GetAmxAddr(amx, params[3]), var->data(), 1);
 				return (*var)[0];
@@ -368,14 +371,8 @@ namespace native
 		auto num_args = params[0] / sizeof(cell) - 2;
 		auto var_size = static_cast<int>(var->size());
 
-		if (var_size == 1)
+		if (var_size == 1 && num_args == 1)
 		{
-			if (num_args < 1)
-			{
-				MF_LogError(amx, AMX_ERR_NATIVE, "Setting Var %s: Required at least 1 arg to set a cell value (now: %d)", _name, num_args);
-				return 0;
-			}
-
 			(*var)[0] = *MF_GetAmxAddr(amx, params[3]);
 			return 1;
 		}
@@ -484,7 +481,7 @@ namespace native
 		}
 
 		auto var_size = static_cast<int>(var->size());
-		return 0;
+		return var_size;
 	}
 
 	cell AMX_NATIVE_CALL native_get_str_len(AMX *amx, cell *params)
@@ -511,17 +508,19 @@ namespace native
 
 	cell AMX_NATIVE_CALL native_new(AMX *amx, cell *params)
 	{
-		const char *_class = MF_GetAmxString(amx, params[1], 0, nullptr);
+		std::string _class = MF_GetAmxString(amx, params[1], 0, nullptr);
 
 		auto cls = Manager::Instance()->ToClass(_class).lock();
 		if (cls == nullptr)
 		{
-			MF_LogError(amx, AMX_ERR_NATIVE, "Class (%s) not found", _class);
+			MF_LogError(amx, AMX_ERR_NATIVE, "Class (%s) not found", _class.c_str());
 			return OBJ_NULL;
 		}
 
 		auto hash = Manager::Instance()->NewObject(cls);
 		auto num_args = params[0] / sizeof(cell) - 1;
+
+		MF_ExecuteForward(g_ObjectCreated, _class.c_str(), num_args, hash);
 
 		auto ctor = Manager::Instance()->FindConstructor(cls, num_args);
 		if (ctor != nullptr)
@@ -563,7 +562,7 @@ namespace native
 			fwds = &ctor->post;
 
 		AmxxForward fwd_id = Forward::Create(amx, _public, &ctor->args);
-		if (fwd_id <= NO_FORWARD)
+		if (fwd_id == NO_FORWARD)
 		{
 			MF_LogError(amx, AMX_ERR_NATIVE, "%s(...): Public not found", _public);
 			return 0;
@@ -603,7 +602,7 @@ namespace native
 			fwds = &mthd->post;
 
 		AmxxForward fwd_id = Forward::Create(amx, _public, &mthd->args);
-		if (fwd_id <= NO_FORWARD)
+		if (fwd_id == NO_FORWARD)
 		{
 			MF_LogError(amx, AMX_ERR_NATIVE, "%s(...): Public not found", _public);
 			return 0;
@@ -625,7 +624,7 @@ namespace native
 		}
 
 		auto *dtor = &cls.lock()->dtor;
-		if (dtor->forward <= NO_FORWARD)
+		if (dtor->forward == NO_FORWARD)
 		{
 			MF_LogError(amx, AMX_ERR_NATIVE, "%s(...): No dtor in this class", _class);
 			return 0;
@@ -640,7 +639,7 @@ namespace native
 			fwds = &dtor->post;
 
 		AmxxForward fwd_id = Forward::Create(amx, _public, nullptr);
-		if (fwd_id <= NO_FORWARD)
+		if (fwd_id == NO_FORWARD)
 		{
 			MF_LogError(amx, AMX_ERR_NATIVE, "%s(...): Public not found", _public);
 			return 0;
@@ -752,6 +751,7 @@ namespace native
 				Forward fwd(amx, params+1, &(dtor.pre), &(dtor.post), hash, nullptr);
 				fwd.Call(dtor.forward);
 			}
+			MF_ExecuteForward(g_ObjectDeleted, cls.lock()->name.c_str(), hash);
 		}
 		
 		Manager::Instance()->DeleteObject(hash);
