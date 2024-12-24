@@ -3,6 +3,9 @@
 #include "oo_manager.h"
 #include "oo_call.h"
 
+int g_ObjectCreated = -1;
+int g_ObjectDeleted = -1;
+
 void OnAmxxAttach(void)
 {
 	static const AMX_NATIVE_INFO oo_natives[] =
@@ -51,12 +54,9 @@ void OnAmxxAttach(void)
 
 void OnPluginsLoaded()
 {
-	MF_ExecuteForward(
-		MF_RegisterForward(
-			"oo_init",
-			ForwardExecType::ET_IGNORE,
-			ForwardParam::FP_DONE)
-	);
+	MF_ExecuteForward(MF_RegisterForward("oo_init", ET_IGNORE, FP_DONE));
+	g_ObjectCreated = MF_RegisterForward("oo_object_created", ET_IGNORE, FP_STRING, FP_CELL, FP_CELL, FP_DONE);
+	g_ObjectDeleted = MF_RegisterForward("oo_object_deleted", ET_IGNORE, FP_STRING, FP_CELL, FP_DONE);
 }
 
 void OnPluginsUnloaded()
