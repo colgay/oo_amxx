@@ -123,7 +123,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     )
     set(${OUTPUT_VAR} ${LIBSTDCXX_PATH} PARENT_SCOPE)
     
-    target_link_libraries(my_executable PRIVATE ${STDCXX_PATH})
+    target_link_libraries(oo PRIVATE ${STDCXX_PATH})
     message(STATUS "Added libstdc++.a dependency for Linux")
 
     set_target_properties(oo PROPERTIES OUTPUT_NAME oo_amxx_i386)
