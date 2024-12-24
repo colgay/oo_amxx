@@ -1,7 +1,7 @@
 #include "oo_forward.h"
 #include "oo_call.h"
 #include "oo_defs.h"
-#include "oo_ustring.h"
+//#include "oo_ustring.h"
 #include "oo_asm.h"
 
 #include <string>
