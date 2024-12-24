@@ -12,6 +12,7 @@
 #define OO_VERSION_NUM	120
 stock const OO_VERSION_STR[] = "1.2.0";
 
+#define @this 			oo_this()
 #define @null 			any:0 	// null object
 
 // OO Arg Types (Full name)
