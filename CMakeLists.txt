@@ -19,6 +19,8 @@ add_library(oo SHARED
     oo_native.cpp
 )
 
+set_target_properties(oo PROPERTIES PREFIX "")
+
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(oo PRIVATE DEBUG _DEBUG)
 elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -96,12 +98,12 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 
     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 4.0)
         target_compile_options(oo PRIVATE
-            -fvisibility=hidden -fvisibility-inlines-hidden
-            $<$<VERSION_GREATER_EQUAL:4.6>:-Wno-narrowing>
-            $<$<VERSION_GREATER_EQUAL:4.7>:-Wno-delete-non-virtual-dtor>
-            $<$<VERSION_GREATER_EQUAL:4.8>:-Wno-unused-result -Wno-error=sign-compare>
-            $<$<VERSION_GREATER_EQUAL:8.0>:-Wno-stringop-truncation>
-            $<$<VERSION_GREATER_EQUAL:8.0>:-Wno-address-of-packed-member>
+	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.0>:-fvisibility=hidden -fvisibility-inlines-hidden>
+	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.6>:-Wno-narrowing>
+	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.7>:-Wno-delete-non-virtual-dtor>
+	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.8>:-Wno-unused-result -Wno-error=sign-compare>
+	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},8.0>:-Wno-stringop-truncation>
+	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},9.0>:-Wno-address-of-packed-member>
         )
     endif()
 
@@ -121,9 +123,7 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         OUTPUT_VARIABLE LIBSTDCXX_PATH
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    set(${OUTPUT_VAR} ${LIBSTDCXX_PATH} PARENT_SCOPE)
-    
-    target_link_libraries(oo PRIVATE ${STDCXX_PATH})
+    target_link_libraries(oo PRIVATE ${LIBSTDCXX_PATH})
     message(STATUS "Added libstdc++.a dependency for Linux")
 
     set_target_properties(oo PROPERTIES OUTPUT_NAME oo_amxx_i386)
