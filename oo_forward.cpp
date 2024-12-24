@@ -64,7 +64,7 @@ namespace oo
 			if (m_arg_list->at(i) == OO_STRING_REF)
 			{
 				const char *str = reinterpret_cast<char*>(arg_data[i]);
-				MF_SetAmxString(m_amx, m_params[i], str, std::strlen(str));
+				MF_SetAmxString(m_amx, m_params[i], str, strlen(str));
 			}
 		}
 
