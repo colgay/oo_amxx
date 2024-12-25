@@ -98,12 +98,12 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 
     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 4.0)
         target_compile_options(oo PRIVATE
-	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.0>:-fvisibility=hidden -fvisibility-inlines-hidden>
-	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.6>:-Wno-narrowing>
-	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.7>:-Wno-delete-non-virtual-dtor>
-	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.8>:-Wno-unused-result -Wno-error=sign-compare>
-	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},8.0>:-Wno-stringop-truncation>
-	    $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},9.0>:-Wno-address-of-packed-member>
+            $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.0>:-fvisibility=hidden -fvisibility-inlines-hidden>
+            $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.6>:-Wno-narrowing>
+            $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.7>:-Wno-delete-non-virtual-dtor>
+            $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},4.8>:-Wno-unused-result -Wno-error=sign-compare>
+            $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},8.0>:-Wno-stringop-truncation>
+            $<$<VERSION_GREATER_EQUAL:${CMAKE_CXX_COMPILER_VERSION},9.0>:-Wno-address-of-packed-member>
         )
     endif()
 
