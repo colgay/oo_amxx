@@ -28,6 +28,7 @@ add_library(oo SHARED
 set(PLUGIN_FILES_PATH "${CMAKE_SOURCE_DIR}/plugins")
 
 set(PLUGIN_FILES 
+    oo.sma
     oo_animal.sma 
     oo_multiple_inheritance.sma 
     oo_hook.sma
