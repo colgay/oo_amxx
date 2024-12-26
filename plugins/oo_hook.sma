@@ -12,7 +12,6 @@ public plugin_precache()
 	oo_hook_mthd("Snake", "Test", "OnSnakeTest");
 }
 
-
 public plugin_init()
 {
 	register_plugin("[OO] Hook Tests", "0.1", "holla");
