@@ -878,6 +878,12 @@ namespace native
 		return 1;
 	}
 
+	cell AMX_NATIVE_CALL native_version(AMX *amx, cell *params)
+	{
+		MF_SetAmxString(amx, params[1], MODULE_VERSION, params[2]);
+		return 0;
+	}
+
 	void PrintArgs(const ArgTypeList *list)
 	{
 		MF_PrintSrvConsole("(");
@@ -917,80 +923,120 @@ namespace native
 		MF_PrintSrvConsole(")\n");
 	}
 
-	cell AMX_NATIVE_CALL native_version(AMX *amx, cell *params)
+	void PrintClass(std::weak_ptr<Class> _class)
 	{
-		MF_SetAmxString(amx, params[1], MODULE_VERSION, params[2]);
-		return 0;
+		auto cl = _class.lock();
+
+		MF_PrintSrvConsole("%s (#%p)", cl->name.c_str(), cl.get());
+	
+		bool first2 = true;
+		for (auto su : cl->supers)
+		{
+			if (first2)
+				MF_PrintSrvConsole(" -> ");
+			else
+				MF_PrintSrvConsole(", ");
+
+			auto sc = su.lock();
+			MF_PrintSrvConsole("%s (#%p)", sc->name.c_str(), sc.get());
+			first2 = false;
+		}
+
+		MF_PrintSrvConsole("\n");
+
+		if (!cl->vars.empty())
+		{
+			MF_PrintSrvConsole("  Variables:\n");
+
+			for (const auto &pair : cl->vars)
+			{
+				MF_PrintSrvConsole("    %s[%d]\n", pair.first.c_str(), pair.second);
+			}
+		}
+
+		if (!cl->ctors.empty())
+		{
+			MF_PrintSrvConsole("  Constructors:\n");
+
+			for (const auto &pair : cl->ctors)
+			{
+				const auto &ct = pair.second;
+				for (const auto &cpair : cl->ctors_map)
+				{
+					if (&ct == cpair.second)
+					{
+						MF_PrintSrvConsole("    %s", cpair.first.c_str());
+						PrintArgs(&ct.args);
+						break;
+					}
+				}
+			}
+		}
+
+		if (!cl->mthds.empty())
+		{
+			MF_PrintSrvConsole("  Methods:\n");
+
+			for (const auto &pair : cl->mthds)
+			{
+				const auto &mt = pair.second;
+				MF_PrintSrvConsole("    %s", pair.first.c_str());
+				PrintArgs(&mt.args);
+			}
+		}
+
+		if (cl->dtor.forward != NO_FORWARD)
+		{
+			MF_PrintSrvConsole("  Destructor: yes\n");
+		}
+
+		if (cl->mro.size() > 1)
+		{
+			bool fi = true;
+			MF_PrintSrvConsole("  MRO Order: ");
+			for (auto cur : cl->mro)
+			{
+				if (!fi)
+					MF_PrintSrvConsole(" -> ");
+				
+				MF_PrintSrvConsole("%s", cur.lock()->name.c_str());
+				fi = false;
+			}
+			MF_PrintSrvConsole("\n");
+		}
 	}
 
 	cell AMX_NATIVE_CALL native_print(AMX *amx, cell *params)
 	{
-		MF_PrintSrvConsole("---------- [OO Classes] ----------\n");
-		
-		bool first = true;
-		for (const auto &clpair : Manager::Instance()->GetClasses())
+		const char *_class = MF_GetAmxString(amx, params[1], 0, nullptr);
+
+		if (strlen(_class) > 0)
 		{
-			if (!first)
-				MF_PrintSrvConsole("---\n");
-
-			auto cl = clpair.second;
-			MF_PrintSrvConsole("%s (#%p)", cl->name.c_str(), cl.get());
-		
-			bool first2 = true;
-			for (auto su : cl->supers)
+			auto cl = Manager::Instance()->ToClass(_class);
+			if (cl.expired())
 			{
-				if (first2)
-					MF_PrintSrvConsole(" -> ");
-				else
-					MF_PrintSrvConsole(", ");
-
-				auto sc = su.lock();
-				MF_PrintSrvConsole("%s (#%p)", sc->name.c_str(), sc.get());
-				first2 = false;
+				MF_LogError(amx, AMX_ERR_NATIVE, "Class (%s) not exist", _class);
+				return 0;
 			}
 
-			MF_PrintSrvConsole("\n");
-
-			if (!cl->ctors.empty())
-			{
-				MF_PrintSrvConsole("  Constructors:\n");
-
-				for (const auto &pair : cl->ctors)
-				{
-					const auto &ct = pair.second;
-					for (const auto &cpair : cl->ctors_map)
-					{
-						if (&ct == cpair.second)
-						{
-							MF_PrintSrvConsole("    %s", cpair.first.c_str());
-							PrintArgs(&ct.args);
-							break;
-						}
-					}
-				}
-			}
-
-			if (!cl->mthds.empty())
-			{
-				MF_PrintSrvConsole("  Methods:\n");
-
-				for (const auto &pair : cl->mthds)
-				{
-					const auto &mt = pair.second;
-					MF_PrintSrvConsole("    %s", pair.first.c_str());
-					PrintArgs(&mt.args);
-				}
-			}
-
-			if (cl->dtor.forward != NO_FORWARD)
-			{
-				MF_PrintSrvConsole("  Destructor: yes\n");
-			}
-
-			first = false;
+			MF_PrintSrvConsole("----------- [OO Class] -----------\n");
+			PrintClass(cl);
+			MF_PrintSrvConsole("----------------------------------\n");
 		}
+		else
+		{
+			MF_PrintSrvConsole("---------- [OO Classes] ----------\n");	
+			bool first = true;
+			for (const auto &clpair : Manager::Instance()->GetClasses())
+			{
+				if (!first)
+					MF_PrintSrvConsole("---\n");
 
-		MF_PrintSrvConsole("----------------------------------\n");
+				PrintClass(clpair.second);
+				first = false;
+			}
+			MF_PrintSrvConsole("----------------------------------\n");
+		}
 		return 0;
 	}
 
