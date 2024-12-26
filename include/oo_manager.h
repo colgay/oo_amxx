@@ -15,6 +15,7 @@ namespace oo
 	class Manager
 	{
 	public:
+		Manager() : m_object_index(1), m_object_check(false) {}
 		~Manager();
 
 		std::weak_ptr<Class> NewClass(const std::string &name);
@@ -28,6 +29,7 @@ namespace oo
 		const Constructor* 	FindConstructor(std::weak_ptr<Class> cls, int arg_size) 		 const;
 		const Method* 		FindMethod(std::weak_ptr<Class> cls, const std::string &name) 	 const;
 		Variable* 			FindVariable(std::weak_ptr<Object> obj, const std::string &name);
+		int 				FindEmptyObjectID();
 
 		const std::unordered_map<std::string, std::shared_ptr<Class>> &GetClasses() const
 		{
@@ -42,12 +44,11 @@ namespace oo
 		void Clear();
 
 		static Manager* Instance();
-
-		Manager() {}
 	private:
-
 		std::unordered_map<std::string, std::shared_ptr<Class>> m_classes;
 		std::unordered_map<ObjectHash, std::shared_ptr<Object>> m_objects;
+		int m_object_index;
+		bool m_object_check;
 	};
 }
 

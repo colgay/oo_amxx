@@ -34,14 +34,41 @@ namespace oo
 			}
 		}
 
-		auto hash = std::hash<std::shared_ptr<Object>>{}(obj);
+		auto hash = FindEmptyObjectID();
 		m_objects.emplace(hash, std::move(obj));
+		m_object_index++;
 		return hash;
 	}
 
 	void Manager::DeleteObject(ObjectHash obj_hash)
 	{
 		m_objects.erase(obj_hash);
+	}
+
+	int Manager::FindEmptyObjectID()
+	{
+		if (!m_object_check)
+		{
+			if (m_object_index == 0)
+			{
+				m_object_check = true;
+				m_object_index++;
+				
+				while (m_object_index == 0 || m_objects.find(m_object_index) != m_objects.end())
+				{
+					m_object_index++;
+				}
+			}
+		}
+		else
+		{
+			while (m_object_index == 0 || m_objects.find(m_object_index) != m_objects.end())
+			{
+				m_object_index++;
+			}
+		}
+
+		return m_object_index;
 	}
 
 	std::weak_ptr<Class> Manager::ToClass(const std::string &name) const
@@ -122,6 +149,8 @@ namespace oo
 	{
 		m_classes.clear();
 		m_objects.clear();
+		m_object_index = 1;
+		m_object_check = false;
 	}
 
 	Manager *Manager::Instance()
