@@ -387,31 +387,31 @@ namespace native
 			int to_begin = *MF_GetAmxAddr(amx, params[3]);
 			if (to_begin < 0)
 			{
-				MF_LogError(amx, AMX_ERR_NATIVE, "Getting Var %s: The DEST begin (%d) must be >= 0", _name, to_begin);
+				MF_LogError(amx, AMX_ERR_NATIVE, "Setting Var %s: The DEST begin (%d) must be >= 0", _name, to_begin);
 				return 0;
 			}
 			int to_end = *MF_GetAmxAddr(amx, params[4]);
 			if (to_begin > to_end)
 			{
-				MF_LogError(amx, AMX_ERR_NATIVE, "Getting Var %s: The DEST begin (%d) is bigger than the end (%d)", _name, to_begin, to_end);
+				MF_LogError(amx, AMX_ERR_NATIVE, "Setting Var %s: The DEST begin (%d) is bigger than the end (%d)", _name, to_begin, to_end);
 				return 0;
 			}
 			if (to_end > var_size)
 			{
-				MF_LogError(amx, AMX_ERR_NATIVE, "Getting Var %s: The DEST end (%d) is bigger than actual variable size (%d)", _name, to_end, var_size);
+				MF_LogError(amx, AMX_ERR_NATIVE, "Setting Var %s: The DEST end (%d) is bigger than actual variable size (%d)", _name, to_end, var_size);
 				return 0;
 			}
 
 			int from_begin = *MF_GetAmxAddr(amx, params[6]);
 			if (from_begin < 0)
 			{
-				MF_LogError(amx, AMX_ERR_NATIVE, "Getting Var %s: The SRC begin (%d) must be >= 0", _name, from_begin);
+				MF_LogError(amx, AMX_ERR_NATIVE, "Setting Var %s: The SRC begin (%d) must be >= 0", _name, from_begin);
 				return 0;
 			}
 			int from_end = *MF_GetAmxAddr(amx, params[7]);
 			if (from_begin > from_end)
 			{
-				MF_LogError(amx, AMX_ERR_NATIVE, "Getting Var %s: The SRC begin (%d) is bigger than the end(%d)", _name, from_begin, from_begin);
+				MF_LogError(amx, AMX_ERR_NATIVE, "Setting Var %s: The SRC begin (%d) is bigger than the end(%d)", _name, from_begin, from_begin);
 				return 0;
 			}
 
@@ -419,7 +419,7 @@ namespace native
 			int to_diff = (to_end == 0) ? var_size : to_end - to_begin;
 			if (from_diff != to_diff)
 			{
-				MF_LogError(amx, AMX_ERR_NATIVE, "Getting Var %s: The SRC size (%d) differs from the DEST size (%d)", _name, from_diff, to_diff);
+				MF_LogError(amx, AMX_ERR_NATIVE, "Setting Var %s: The SRC size (%d) differs from the DEST size (%d)", _name, from_diff, to_diff);
 				return 0;
 			}
 
