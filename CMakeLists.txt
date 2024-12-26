@@ -175,7 +175,7 @@ if (DEFINED AMXXPC_PATH)
 		add_custom_command(
 			OUTPUT "${PLUGIN_FILES_PATH}/amxxpc32.so"
 			COMMAND ${CMAKE_COMMAND} -E copy "${AMXXPC_PATH}/amxxpc32.so" "${PLUGIN_FILES_PATH}")
-		add_custom_target(copy_amxxpc ALL DEPENDS "${PLUGIN_FILES_PATH}/amxxpc32.so")
+		add_custom_target(copy_amxxpc ALL DEPENDS "${PLUGIN_FILES_PATH}/amxxpc" "${PLUGIN_FILES_PATH}/amxxpc32.so")
 	else()
 		add_custom_target(copy_amxxpc ALL)
 	endif()
