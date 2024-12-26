@@ -541,6 +541,10 @@ native oo_get_str_len(any:this, const name[]);
  */
 native oo_get_plugin();
 
+native oo_version(output[], length);
+
+native oo_print(const class[]="");
+
 stock oo_add_str(any:this, const name[], const string[], pos=-1)
 {
 	return oo_set_str(this, name, string, (pos == -1) ? oo_get_str_len(this, name) : pos);
