@@ -197,4 +197,6 @@ if (DEFINED AMXXPC_PATH)
 
     add_custom_target(compile_sma ALL DEPENDS ${AMXX_FILES} SOURCES ${SMA_FILES})
     add_dependencies(compile_sma oo)
+else()
+    message(WARNING "AMXXPC_PATH is not defined. Plugins will not compile. You can define it in the '.env' file.")
 endif()
