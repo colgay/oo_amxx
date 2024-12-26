@@ -1,7 +1,17 @@
 cmake_minimum_required(VERSION 3.13)
+
+if(POLICY CMP0175)
+    cmake_policy(SET CMP0175 NEW)
+endif()
+
 project(oo VERSION 1.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
+
+set(ENV_FILE_PATH "${CMAKE_SOURCE_DIR}/.env")
+if (EXISTS ${ENV_FILE_PATH})
+    include(${ENV_FILE_PATH})
+endif()
 
 include_directories(
     include
@@ -19,6 +29,14 @@ add_library(oo SHARED
     oo_native.cpp
 )
 
+set(PLUGIN_FILES_PATH "${CMAKE_SOURCE_DIR}/plugins")
+
+set(PLUGIN_FILES 
+    oo_animal.sma 
+    oo_multiple_inheritance.sma 
+    oo_hook.sma
+)
+
 set_target_properties(oo PROPERTIES PREFIX "")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -27,7 +45,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
     target_compile_definitions(oo PRIVATE NDEBUG)
 endif ()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(oo PRIVATE
         _CRT_SECURE_NO_DEPRECATE
         _CRT_SECURE_NO_WARNINGS
@@ -72,7 +90,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
     set_target_properties(oo PROPERTIES OUTPUT_NAME oo_amxx)
 
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_compile_definitions(oo PRIVATE _LINUX POSIX LINUX)
 
     target_compile_options(oo PRIVATE
@@ -132,3 +150,55 @@ else()
 endif()
 
 target_compile_definitions(oo PRIVATE PAWN_CELL_SIZE=32)
+
+if (DEFINED AMXXPC_PATH)
+	if (NOT EXISTS "${CMAKE_BINARY_DIR}/plugins")
+		file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/plugins")
+	endif()
+
+    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        if (EXISTS "${AMXXPC_PATH}/amxxpc.exe")
+            set(COMPILER_PATH "${AMXXPC_PATH}/amxxpc.exe")
+            set(AMXXINC_PATH "${PLUGIN_FILES_PATH}/include")
+        endif()
+    else ()
+        if (EXISTS "${AMXXPC_PATH}/amxxpc")
+            set(COMPILER_PATH "${PLUGIN_FILES_PATH}/amxxpc")
+            set(AMXXINC_PATH "${AMXXPC_PATH}/include")
+        endif()
+    endif()
+
+    if (NOT DEFINED COMPILER_PATH)
+        message(FATAL_ERROR "AMXX compiler not found in ${AMXXPC_PATH}")
+    endif()
+
+	if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+		add_custom_command(
+			OUTPUT "${PLUGIN_FILES_PATH}/amxxpc"
+			COMMAND ${CMAKE_COMMAND} -E copy "${AMXXPC_PATH}/amxxpc" "${PLUGIN_FILES_PATH}")
+		add_custom_command(
+			OUTPUT "${PLUGIN_FILES_PATH}/amxxpc32.so"
+			COMMAND ${CMAKE_COMMAND} -E copy "${AMXXPC_PATH}/amxxpc32.so" "${PLUGIN_FILES_PATH}")
+		add_custom_target(copy_amxxpc ALL DEPENDS "${PLUGIN_FILES_PATH}/amxxpc32.so")
+	else()
+		add_custom_target(copy_amxxpc ALL)
+	endif()
+
+    foreach(PLUGIN IN LISTS PLUGIN_FILES)
+        get_filename_component(FILE_NOEXT "${PLUGIN}" NAME_WE)
+        set(SMA_FILE "${PLUGIN_FILES_PATH}/${PLUGIN}")
+        set(AMXX_FILE "${CMAKE_BINARY_DIR}/plugins/${FILE_NOEXT}.amxx")
+        list(APPEND AMXX_FILES ${AMXX_FILE})
+        list(APPEND SMA_FILES ${SMA_FILE})
+
+        add_custom_command(
+            OUTPUT "${AMXX_FILE}"
+            COMMAND "${COMPILER_PATH}" "${SMA_FILE}" -i"${AMXXINC_PATH}" -o"${AMXX_FILE}"
+            WORKING_DIRECTORY "${PLUGIN_FILES_PATH}"
+            DEPENDS copy_amxxpc ${SMA_FILE}
+        )
+    endforeach()
+
+    add_custom_target(compile_sma ALL DEPENDS ${AMXX_FILES} SOURCES ${SMA_FILES})
+    add_dependencies(compile_sma oo)
+endif()
