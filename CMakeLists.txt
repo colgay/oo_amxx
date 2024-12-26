@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
 
-if(POLICY CMP0175)
-    cmake_policy(SET CMP0175 NEW)
-endif()
-
 project(oo VERSION 1.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
