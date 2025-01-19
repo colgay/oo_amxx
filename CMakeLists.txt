@@ -5,6 +5,7 @@ project(oo VERSION 1.2.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 
 set(ENV_FILE_PATH "${CMAKE_SOURCE_DIR}/.env")
+
 if (EXISTS ${ENV_FILE_PATH})
     include(${ENV_FILE_PATH})
 endif()
@@ -29,9 +30,7 @@ set(PLUGIN_FILES_PATH "${CMAKE_SOURCE_DIR}/plugins")
 
 set(PLUGIN_FILES 
     oo.sma
-    oo_animal.sma 
-    oo_multiple_inheritance.sma 
-    oo_hook.sma
+    oo_var_ext.sma
 )
 
 set_target_properties(oo PROPERTIES PREFIX "")
